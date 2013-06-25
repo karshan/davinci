@@ -11,6 +11,7 @@ Circle.prototype.eq = function(b, precision) {
 	return this.c.eq(b.c, precision) && fltEq(this.r, b.r);
 };
 
+// interesting note this is reflexive iff a.r == b.r
 Circle.prototype.on = function(p, precision) {
     precision = precision || 0.0;
     var fltEq = function(a, b) {

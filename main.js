@@ -19,6 +19,20 @@ Array.prototype.find = function(a, eq) {
     return false;
 }
 
+Circle.prototype.neighbors = function() {
+    var size = global.size;
+
+    var r = size/6;
+    var dx = r * Math.cos(Math.PI/6);
+    var dy = r * Math.sin(Math.PI/6);
+    return [
+            new Circle(new Point(this.c.x + dx, this.c.y + dy), this.r),
+            new Circle(new Point(this.c.x - dx, this.c.y + dy), this.r),
+            new Circle(new Point(this.c.x + dx, this.c.y - dy), this.r),
+            new Circle(new Point(this.c.x - dx, this.c.y - dy), this.r),
+    ];     
+}
+
 function floatEq(a, b) {
     return Math.abs(a - b) <= global.precision;
 }
@@ -31,8 +45,8 @@ function init() {
     var canvas = document.getElementById("screen");
     var ctx = global.ctx = canvas.getContext("2d");
 
-    canvas.width = canvas.height; // make sure we have a square
-    global.circles = drawBoard(ctx, canvas.width);
+    global.size = canvas.width = canvas.height; // make sure we have a square
+    global.circles = drawBoard();
 }
 
 // makes sure drawing an arc with starting angle a[0] and ending angle a[1] spans 60 degrees
@@ -77,7 +91,10 @@ function dist(a, b) {
     return Math.sqrt(sqr(a.x - b.x) + sqr(a.y - b.y));
 }
 
-function drawBoard(ctx, size) {
+function drawBoard() {
+    var ctx = global.ctx;
+    var size = global.size;
+
     var r = size/6;
     var dx = r * Math.cos(Math.PI/6);
     var dy = r * Math.sin(Math.PI/6);
@@ -86,29 +103,19 @@ function drawBoard(ctx, size) {
     var circles = [];
 
     var q = [c0];
-
-    var adjacent = function(c) {
-        return [
-            new Circle(new Point(c.c.x + dx, c.c.y + dy), c.r),
-            new Circle(new Point(c.c.x - dx, c.c.y + dy), c.r),
-            new Circle(new Point(c.c.x + dx, c.c.y - dy), c.r),
-            new Circle(new Point(c.c.x - dx, c.c.y - dy), c.r),
-        ];            
-    };
-
    
     while(circles.length < 111) {
         var c = q.shift();
-        drawCircle(c);
+        drawCircle(c, "#000");
         circles.push(c);
 
-        adjacent(c).forEach(function(x) {
+        c.neighbors().forEach(function(x) {
             if (circles.find(x, stdEq) || q.find(x, stdEq)) return;
             q.push(x);
         });
     }
 
-    drawCircle(new Circle(new Point(size/2, size/2), size/2));
+    drawCircle(new Circle(new Point(size/2, size/2), size/2), "#888");
 
     return circles;
 }
@@ -120,7 +127,7 @@ function fillOval(enclosingCircles) {
     var xs = []; // set of circles whose intersection forms the oval we want to fill
     var ys = []; // the other two circles
     enclosingCircles.forEach(function(c) {
-        // get the number of enclosing circles whose centres lie on this circle
+        // get the number of enclosing circles whose centres lie on this enclosing circle
         var intersections = enclosingCircles.reduce(function(prev, cur) {
             if (cur.on(c.c, global.precision))
                 return prev + 1;
@@ -146,36 +153,48 @@ function fillOval(enclosingCircles) {
     ctx.fill();
 }
 
+function drawArc(c, arcPoints) {
+    var ctx = global.ctx;
+    
+    var angles = arcPoints.map(function(y) {
+        return getAngle(c.c, y);
+    });
+    reorderAngles(angles);
+    ctx.arc(c.c.x, c.c.y, c.r, angles[0], angles[1], false);
+}
+
 function fillTriangle(enclosingCircles) {
     var ctx = global.ctx;
 
     var boundingCircles = [];
+    var allNeighbors = [];
     enclosingCircles.forEach(function(c) {
-        var alreadyAdded = function(c) {
-            for (var i = 0; i < boundingCircles.length; i++) {
-                var a = boundingCircles[i];
-                if (c.cx == a.cx && c.cy == a.cy)
-                    return true;
-            }
-            return false;
-        };
-
-        c.neighbors.forEach(function(n) {
-            if (alreadyAdded(n)) return;
-            if (n == null) {
-                ctx.strokeStyle = "#00ff00";
-                circle(ctx, c.cx, c.cy, c.r);
-                return;
-            }
-            if (floatEq(dist(n.cx, n.cy, c.cx, c.cy), 2 * n.r + 2 * n.r * Math.cos(Math.PI/6)))
-                boundingCircles.push(n);
+        c.neighbors().forEach(function(n) {
+            if (enclosingCircles.find(n, stdEq) || allNeighbors.find(n, stdEq)) return;
+            allNeighbors.push(n);
         });
     });
 
-    boundingCircles.forEach(function(c) {
-        ctx.strokeStyle = "#00ff00";
-        circle(ctx, c.cx, c.cy, c.r);
+    allNeighbors.forEach(function(c) {
+        // get the number of enclosing circles that pass through the center of this neighbor
+        var intersections = enclosingCircles.reduce(function(prev, cur) {
+            if (cur.on(c.c, global.precision))
+                return prev + 1;
+            return prev;
+        }, 0);
+        if (intersections == 2)
+            boundingCircles.push(c);
     });
+
+    ctx.beginPath();
+    ctx.fillStyle = "#ff0000";
+    boundingCircles.forEach(function(c) {
+        var arcPoints = enclosingCircles.filter(function(ec) { return c.on(ec.c, global.precision); });
+        arcPoints = arcPoints.map(function(x) { return x.c; });
+        drawArc(c, arcPoints);
+    });
+    ctx.closePath();
+    ctx.fill();
 }
 
 function boardClick(evt) {
