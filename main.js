@@ -7,15 +7,14 @@ var global = {
 };
 
 function switchPlayer() {
-    if (global.player == 0) global.player = 1;
-    else global.player = 0;
+    global.player = global.player === 0 ? 1 : 0;
 }
 
 function playerColor() {
-    return global.player == 0 ? "#ffffa0" : "#555";
+    return global.player === 0 ? "#ffffa0" : "#555";
 }
 
-Array.prototype.swap = function (x,y) {
+Array.prototype.swap = function (x, y) {
     var b = this[x];
     this[x] = this[y];
     this[y] = b;
@@ -40,7 +39,7 @@ Circle.prototype.neighbors = function() {
             new Circle(new Point(this.c.x - dx, this.c.y + dy), this.r),
             new Circle(new Point(this.c.x + dx, this.c.y - dy), this.r),
             new Circle(new Point(this.c.x - dx, this.c.y - dy), this.r),
-    ];     
+    ];
 }
 
 function floatEq(a, b) {
@@ -111,7 +110,7 @@ function drawBoard() {
     var circles = [];
 
     var q = [c0];
-   
+
     while(circles.length < 111) {
         var c = q.shift();
         drawCircle(c, "#000");
@@ -139,9 +138,9 @@ function fillOval(enclosingCircles) {
         var intersections = enclosingCircles.reduce(function(prev, cur) {
             if (cur.on(c.c, global.precision))
                 return prev + 1;
-            return prev;    
+            return prev;
         }, 0);
-        
+
         if (intersections == 2)
             xs.push(c);
         else
@@ -168,7 +167,7 @@ function fillOval(enclosingCircles) {
 
 function drawArc(c, arcPoints) {
     var ctx = global.ctx;
-    
+
     var angles = arcPoints.map(function(y) {
         return getAngle(c.c, y);
     });
@@ -206,8 +205,8 @@ function fillTriangle(enclosingCircles) {
     ctx.beginPath();
     ctx.fillStyle = playerColor();
     arcs.forEach(function(arc) {
-        var arcCircle = boundingCircles.filter(function(bc) { 
-            return bc.on(arc[0], global.precision) && bc.on(arc[1], global.precision); 
+        var arcCircle = boundingCircles.filter(function(bc) {
+            return bc.on(arc[0], global.precision) && bc.on(arc[1], global.precision);
         })[0];
         drawArc(arcCircle, arc);
     });
