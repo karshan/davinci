@@ -1,9 +1,19 @@
 "use strict";
 
 var global = {
-    lineWidth: 3,
-    precision: 0.00001
+    lineWidth: 2,
+    precision: 0.00001,
+    player: 0
 };
+
+function switchPlayer() {
+    if (global.player == 0) global.player = 1;
+    else global.player = 0;
+}
+
+function playerColor() {
+    return global.player == 0 ? "#ffffa0" : "#555";
+}
 
 Array.prototype.swap = function (x,y) {
     var b = this[x];
@@ -49,11 +59,9 @@ function init() {
     global.circles = drawBoard();
 }
 
-// makes sure drawing an arc with starting angle a[0] and ending angle a[1] spans 60 degrees
-function reorderAngles(a) {
-    if (floatEq(a[1] + Math.PI/3, a[0]) || floatEq(a[1] + Math.PI/3 - 2*Math.PI, a[0])) {
-        a.swap(0, 1);
-    }
+// TODO: reimpliment as shorterArcIsAntiClockwise
+function sixtyDegreeArcIsAntiClockwise(arc) {
+    return (floatEq(arc[1] + Math.PI/3, arc[0]) || floatEq(arc[1] + Math.PI/3 - 2*Math.PI, arc[0]));
 }
 
 // returns the angle to a point on a circle from its center, the point (cx + r, cy) is defined to be 0 degrees
@@ -140,17 +148,22 @@ function fillOval(enclosingCircles) {
             ys.push(c);
     });
 
+    var arcPoints = ys.map(function(x) { return x.c });
+    var arcs = [ [arcPoints[0], arcPoints[1]],
+                 [arcPoints[1], arcPoints[0]] ]
+
     ctx.beginPath();
-    ctx.fillStyle = "#ff0000";
-    xs.forEach(function(x) {
-        var angles = ys.map(function(y) {
-            return getAngle(x.c, y.c);
+    ctx.fillStyle = playerColor();
+    xs.forEach(function(x, i) {
+        var angles = arcs[i].map(function(ap) {
+            return getAngle(x.c, ap);
         });
-        reorderAngles(angles);
-        ctx.arc(x.c.x, x.c.y, x.r, angles[0], angles[1], false);
+        ctx.arc(x.c.x, x.c.y, x.r, angles[0], angles[1], sixtyDegreeArcIsAntiClockwise(angles));
     });
     ctx.closePath();
     ctx.fill();
+    ctx.strokeStyle = "#000";
+    ctx.stroke();
 }
 
 function drawArc(c, arcPoints) {
@@ -159,8 +172,7 @@ function drawArc(c, arcPoints) {
     var angles = arcPoints.map(function(y) {
         return getAngle(c.c, y);
     });
-    reorderAngles(angles);
-    ctx.arc(c.c.x, c.c.y, c.r, angles[0], angles[1], false);
+    ctx.arc(c.c.x, c.c.y, c.r, angles[0], angles[1], sixtyDegreeArcIsAntiClockwise(angles));
 }
 
 function fillTriangle(enclosingCircles) {
@@ -186,15 +198,23 @@ function fillTriangle(enclosingCircles) {
             boundingCircles.push(c);
     });
 
+    var arcPoints = enclosingCircles.map(function(x) { return x.c; });
+    var arcs = [ [arcPoints[0], arcPoints[1]],
+                 [arcPoints[1], arcPoints[2]],
+                 [arcPoints[2], arcPoints[0]], ];
+
     ctx.beginPath();
-    ctx.fillStyle = "#ff0000";
-    boundingCircles.forEach(function(c) {
-        var arcPoints = enclosingCircles.filter(function(ec) { return c.on(ec.c, global.precision); });
-        arcPoints = arcPoints.map(function(x) { return x.c; });
-        drawArc(c, arcPoints);
+    ctx.fillStyle = playerColor();
+    arcs.forEach(function(arc) {
+        var arcCircle = boundingCircles.filter(function(bc) { 
+            return bc.on(arc[0], global.precision) && bc.on(arc[1], global.precision); 
+        })[0];
+        drawArc(arcCircle, arc);
     });
     ctx.closePath();
     ctx.fill();
+    ctx.strokeStyle = "#000";
+    ctx.stroke();
 }
 
 function boardClick(evt) {
@@ -211,7 +231,9 @@ function boardClick(evt) {
 
     if (enclosingCircles.length == 4) { // point clicked is inside an oval
         fillOval(enclosingCircles);
+        switchPlayer();
     } else if (enclosingCircles.length == 3) { // point clicked is inside a triangle
         fillTriangle(enclosingCircles);
+        switchPlayer();
     }
 }
