@@ -3,7 +3,9 @@
 var global = {
     lineWidth: 2,
     precision: 0.00001,
-    player: 0
+    player: 0,
+    ovals: [],
+    triangles: []
 };
 
 function switchPlayer() {
@@ -128,8 +130,7 @@ function drawBoard() {
 }
 
 function fillOval(enclosingCircles) {
-    var canvas = document.getElementById("screen");
-    var ctx = canvas.getContext("2d");
+    var ctx = global.ctx;
 
     var xs = []; // set of circles whose intersection forms the oval we want to fill
     var ys = []; // the other two circles
@@ -229,10 +230,40 @@ function boardClick(evt) {
     }
 
     if (enclosingCircles.length == 4) { // point clicked is inside an oval
+        var existing = global.ovals.filter(function(a) {
+            for (var i = 0; i < 4; i++) {
+                if (!a.enclosingCircles[i].eq(enclosingCircles[i]))
+                    return false;
+            }
+            return true;
+        });
+        if (existing.length !== 0) return;
+
         fillOval(enclosingCircles);
+        global.ovals.push(new Oval(enclosingCircles, global.player));
         switchPlayer();
     } else if (enclosingCircles.length == 3) { // point clicked is inside a triangle
+        var existing = global.triangles.filter(function(a) {
+            for (var i = 0; i < 3; i++) {
+                if (!a.enclosingCircles[i].eq(enclosingCircles[i]))
+                    return false;
+            }
+            return true;
+        });
+        if (existing.length !== 0) return;
+
         fillTriangle(enclosingCircles);
+        global.triangles.push(new Triangle(enclosingCircles, global.player));
         switchPlayer();
     }
+}
+
+function Oval(enclosingCircles, player) {
+    this.enclosingCircles = enclosingCircles;
+    this.player = player;
+}
+
+function Triangle(enclosingCircles, player) {
+    this.enclosingCircles = enclosingCircles;
+    this.player = player;
 }
