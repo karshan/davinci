@@ -99,6 +99,35 @@ function drawCircle(c, color) {
 function dist(a, b) {
     return Math.sqrt(sqr(a.x - b.x) + sqr(a.y - b.y));
 }
+/*
+function drawBoard() {
+    var ctx = global.ctx;
+    var size = global.size;
+
+    var r = size/6;
+    var dx = r * Math.cos(Math.PI/6);
+    var dy = r * Math.sin(Math.PI/6);
+
+    var c0 = new Circle(new Point(size/2 - (3*dx), dy), r);
+    var circles = [];
+
+    var c = c0;
+    for (var row = 0; row < 9; row++) {
+        var fixed_c = c;
+        for (var i = 0; i < 5; i++) {    
+            drawCircle(c, "#000");
+            c = new Circle(new Point(c.c.x + dx, c.c.y - dy), r);
+        }
+        c = fixed_c;
+        for (var i = 0; i < 5; i++) {
+            c = new Circle(new Point(c.c.x - dx, c.c.y + dy), r);
+            drawCircle(c, "#000");
+        }
+        c = fixed_c;
+        c = new Circle(new Point(c.c.x + dx, c.c.y + dy), r);
+    }
+    drawCircle(new Circle(new Point(size/2, size/2), size/2), "#888");
+}*/
 
 function drawBoard() {
     var ctx = global.ctx;
@@ -217,6 +246,41 @@ function fillTriangle(enclosingCircles) {
     ctx.stroke();
 }
 
+function checkTriangle() {
+/*    var newOval = global.ovals[global.ovals.length - 1];
+
+    for (var i = 0; i < global.ovals.length - 1; i++) {
+        if (commonCircles(newOval.enclosingCircles, global.ovals[i].enclosingCircles) === 3) {
+        }
+    }*/
+}
+
+function addOval(enclosingCircles, player) {
+    fillOval(enclosingCircles);
+    global.ovals.push(new Oval(enclosingCircles, player));
+/*
+    checkTriangle();
+    checkDiamond();
+    checkGem();
+    checkEye();
+    checkHourglass();
+    checkCircle();
+    checkFlower();
+*/
+}
+
+function addTriangle(enclosingCircles, player) {
+    fillTriangle(enclosingCircles);
+    global.triangles.push(new Triangle(enclosingCircles, player));
+
+/*    checkDiamond();
+    checkGem();
+    checkPyramid();
+    checkHourglass();
+    checkStar();
+*/
+}
+
 function boardClick(evt) {
     var p = new Point(evt.offsetX, evt.offsetY);
     var circles = global.circles;
@@ -239,8 +303,7 @@ function boardClick(evt) {
         });
         if (existing.length !== 0) return;
 
-        fillOval(enclosingCircles);
-        global.ovals.push(new Oval(enclosingCircles, global.player));
+        addOval(enclosingCircles, global.player);
         switchPlayer();
     } else if (enclosingCircles.length == 3) { // point clicked is inside a triangle
         var existing = global.triangles.filter(function(a) {
@@ -252,8 +315,7 @@ function boardClick(evt) {
         });
         if (existing.length !== 0) return;
 
-        fillTriangle(enclosingCircles);
-        global.triangles.push(new Triangle(enclosingCircles, global.player));
+        addTriangle(enclosingCircles, global.player);
         switchPlayer();
     }
 }
